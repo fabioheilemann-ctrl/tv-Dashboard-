@@ -110,11 +110,18 @@ body{font-family:var(--f-ui);color:var(--text)}
 .plate em{font-style:normal;background:var(--violet);color:var(--bg);font-size:12px;padding:5px 6px;margin-right:10px;letter-spacing:.05em}
 .carph{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);font-family:var(--f-mono);font-size:15px;letter-spacing:.3em;color:var(--dim)}
 /* Wetter */
-.wx{display:flex;align-items:center;gap:26px;padding:12px 30px;margin-top:10px}
-.wx svg{width:72px;height:72px}
-.wx-t{font-size:56px;line-height:1}
-.wx-c{font-size:22px;font-weight:600;letter-spacing:.06em}
-.wx-m{font-family:var(--f-mono);font-size:15px;color:var(--grey);letter-spacing:.1em;margin-top:4px}
+.dock{display:grid;grid-template-columns:1.9fr 1fr 1fr 1fr;gap:14px;width:100%;margin-top:10px}
+.wx{display:flex;align-items:center;gap:16px;padding:12px 18px}
+.app{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 6px;color:var(--violet-hi);cursor:pointer}
+.app svg{width:40px;height:40px;filter:drop-shadow(0 0 6px rgba(139,92,246,.7))}
+.app span{font-family:var(--f-mono);font-size:15px;letter-spacing:.2em;color:var(--text)}
+.app:focus{color:#fff}
+#toast{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);font-family:var(--f-mono);font-size:17px;letter-spacing:.14em;color:var(--text);background:var(--panel-solid);border:1px solid var(--line-hi);padding:12px 22px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+.wx svg{width:54px;height:54px;flex:none}
+.wx-t{font-size:44px;line-height:1;flex:none}
+.wx-c{font-size:20px;font-weight:600;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wx-m{font-family:var(--f-mono);font-size:13px;color:var(--grey);letter-spacing:.06em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Shorts */
 .yt-big{font-size:60px;line-height:1}
@@ -248,11 +255,17 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
         <div class="carph" id="carph">FAHRZEUGSCAN LÄUFT …</div>
         <div class="carinfo"><span>BMW 5ER · F10</span><span class="plate"><em>D</em>EMD FH 777</span><span>SCAN: AKTIV</span></div>
       </div>
-      <div class="tile wx" tabindex="0" data-detail="wetter">
-        <svg id="wxIcon" viewBox="0 0 64 64" aria-hidden="true"></svg>
-        <div><div class="num wx-t"><span id="wxT">--</span>°</div></div>
-        <div><div class="wx-c" id="wxC">Wetter wird geladen</div><div class="wx-m" id="wxM">EMDEN</div></div>
+      <div class="dock">
+        <div class="tile wx" tabindex="0" data-detail="wetter">
+          <svg id="wxIcon" viewBox="0 0 64 64" aria-hidden="true"></svg>
+          <div class="num wx-t"><span id="wxT">--</span>°</div>
+          <div style="min-width:0"><div class="wx-c" id="wxC">Wetter wird geladen</div><div class="wx-m" id="wxM">EMDEN</div></div>
+        </div>
+        <div class="tile app" tabindex="0" data-app="youtube"><svg viewBox="0 0 48 48"><rect x="4" y="10" width="40" height="28" rx="8" fill="none" stroke="currentColor" stroke-width="3"/><path d="M20 17l11 7-11 7z" fill="currentColor"/></svg><span>YOUTUBE</span></div>
+        <div class="tile app" tabindex="0" data-app="netflix"><svg viewBox="0 0 48 48"><path d="M14 6v36M34 6v36M14 6l20 36" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="bevel"/></svg><span>NETFLIX</span></div>
+        <div class="tile app" tabindex="0" data-app="hdmi1"><svg viewBox="0 0 48 48"><path d="M6 16h36v10l-5 6H11l-5-6z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M14 22h20" stroke="currentColor" stroke-width="3"/></svg><span>HDMI 1</span></div>
       </div>
+      <div id="toast"></div>
     </section>
 
     <section class="col">
@@ -401,7 +414,7 @@ async function loadWeather(){
     WX = await r.json();
     const c = WX.current, [t, ic] = wx(c.weather_code, !c.is_day);
     $("wxIcon").innerHTML = ic; $("wxT").textContent = Math.round(c.temperature_2m); $("wxC").textContent = t;
-    $("wxM").textContent = `GEFÜHLT ${Math.round(c.apparent_temperature)}° · WIND ${Math.round(c.wind_speed_10m)} KM/H · REGEN ${WX.daily.precipitation_probability_max[0]} %`;
+    $("wxM").textContent = `GEFÜHLT ${Math.round(c.apparent_temperature)}° · WIND ${Math.round(c.wind_speed_10m)} · REGEN ${WX.daily.precipitation_probability_max[0]} %`;
     $("topTemp").textContent = Math.round(c.temperature_2m) + "°";
   } catch (e) { $("wxC").textContent = "Wetter nicht erreichbar"; }
 }
@@ -531,6 +544,16 @@ function moveSel(dir){
 /* Zurueck-Taste der Fernbedienung: Browser-Verlauf nutzen */
 addEventListener("hashchange", () => { if (!location.hash && current) closeDetail(); });
 
+/* ---------- Apps starten ----------
+   In der TV-App "Kommandozentrale" stellt Android das Objekt window.Kommando bereit (open("youtube"|"netflix"|"hdmi1")).
+   Im normalen Browser gibt es das nicht, dann kommt ein Hinweis. */
+let toastT;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 3500); }
+function launch(app){
+  try { if (window.Kommando && Kommando.open) { Kommando.open(app); return; } } catch (e) {}
+  toast("APP-START GEHT NUR IN DER TV-APP KOMMANDOZENTRALE");
+}
+
 /* ---------- Bedienung mit der Fernbedienung ---------- */
 const tiles = () => [...document.querySelectorAll(".tile")];
 let lastTile = null;
@@ -563,11 +586,13 @@ document.addEventListener("keydown", e => {
   }
   const dirs = {ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down"};
   if (dirs[k]) { e.preventDefault(); go(dirs[k]); }
+  if (k === "Enter" && document.activeElement.dataset.app) { e.preventDefault(); launch(document.activeElement.dataset.app); return; }
   if (k === "Enter" && document.activeElement.dataset.detail) { e.preventDefault(); location.hash = document.activeElement.dataset.detail; openDetail(document.activeElement.dataset.detail); }
 });
 document.addEventListener("click", e => {
   const t = e.target.closest(".tile");
   if (current && (e.target.closest(".close") || e.target.id === "detail")) { history.back(); return; }
+  if (t && !current && t.dataset.app) { t.focus(); launch(t.dataset.app); return; }
   if (t && !current) { t.focus(); location.hash = t.dataset.detail; openDetail(t.dataset.detail); }
 });
 if (location.hash) history.replaceState(null, "", location.pathname);

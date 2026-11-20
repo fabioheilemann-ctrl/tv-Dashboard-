@@ -1,0 +1,32 @@
+plugins { id "com.android.application" }
+
+android {
+    namespace "de.kommando.tv"
+    compileSdk 34
+    defaultConfig {
+        applicationId "de.kommando.tv"
+        minSdk 24
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")
+        versionName "1." + (System.getenv("VERSION_CODE") ?: "1")
+    }
+    signingConfigs {
+        release {
+            // Eigener, fester Schluessel, damit Updates sich ueber die alte Version installieren lassen.
+            storeFile file("../kommando.jks")
+            storePassword "kommando"
+            keyAlias "kommando"
+            keyPassword "kommando"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
