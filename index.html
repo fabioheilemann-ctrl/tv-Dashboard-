@@ -286,11 +286,23 @@ let DATA = null, WX = null;
 
 /* ---------- Skalierung auf den Bildschirm + Schutz vor Einbrennen ---------- */
 let drift = [0, 0];
+/* ZOOM: Anteil des Bildschirms, den das Dashboard nutzt. Fernseher schneiden oft die Raender ab (Overscan),
+   deshalb Standard 0,92. Anpassbar ueber die Adresse, z. B. ...tv-Dashboard-/?zoom=0.85 (wird gemerkt). */
+let ZOOM = 0.92;
+try {
+  const q = parseFloat(new URLSearchParams(location.search).get("zoom"));
+  if (q >= 0.5 && q <= 1.2) { ZOOM = q; localStorage.setItem("zoom", q); }
+  else { const m = parseFloat(localStorage.getItem("zoom")); if (m >= 0.5 && m <= 1.2) ZOOM = m; }
+} catch (e) {}
 function fit(){
-  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
-  const x = (innerWidth - 1920 * s) / 2 + drift[0], y = (innerHeight - 1080 * s) / 2 + drift[1];
+  const vv = window.visualViewport;
+  const w = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth, vv ? vv.width : innerWidth);
+  const h = Math.min(innerHeight, document.documentElement.clientHeight || innerHeight, vv ? vv.height : innerHeight);
+  const s = Math.min(w / 1920, h / 1080) * ZOOM;
+  const x = (w - 1920 * s) / 2 + drift[0], y = (h - 1080 * s) / 2 + drift[1];
   $("app").style.transform = `translate(${x}px,${y}px) scale(${s})`;
 }
+if (window.visualViewport) visualViewport.addEventListener("resize", fit);
 addEventListener("resize", fit); fit();
 setInterval(() => { drift = [Math.round(Math.random() * 8 - 4), Math.round(Math.random() * 8 - 4)]; fit(); }, 180000);
 
@@ -570,7 +582,7 @@ setTimeout(() => tiles()[0].focus({preventScroll: true}), 600);
   let r; try { r = new THREE.WebGLRenderer({canvas: cv, alpha: true, antialias: true}); } catch (e) { return; }
   r.setPixelRatio(1); r.setSize(1640, 600, false);
   const T = THREE, scene = new T.Scene(), cam = new T.PerspectiveCamera(24, 1640 / 600, 0.1, 100);
-  cam.position.set(0, 1.45, 7.0); cam.lookAt(0, 0.5, 0);
+  cam.position.set(0, 1.5, 8.2); cam.lookAt(0, 0.5, 0);
   const VIO = 0xa78bfa, HI = 0xddd6fe, RED = 0xfb7185;
   const edgeMat = new T.LineBasicMaterial({color: VIO, transparent: true, opacity: .9});
   const fillMat = new T.MeshBasicMaterial({color: 0x2e1065, transparent: true, opacity: .35, depthWrite: false, side: T.DoubleSide});
