@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emden Control</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Space+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: one 16:9 screen. Left = clock ring + date. Right = weather now + 4 days. Bottom band = tasks + status. */
+:root{
+  --bg:#0c0a13; --panel:#15121f; --panel-2:#1b1727; --line:#2c2740;
+  --text:#ebe8f5; --muted:#908ca3; --violet:#8b5cf6; --violet-hi:#b69cff; --grey:#a3a0b2;
+  --f-display:"Orbitron","Space Grotesk",system-ui,sans-serif;
+  --f-body:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-body);overflow:hidden;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stage{position:relative;height:100%;min-height:100vh;display:grid;gap:2vmin;padding:3vmin 1vmin;
+  grid-template-columns:1.05fr 1fr;grid-template-rows:1fr auto;
+  grid-template-areas:"clock weather" "tasks weather2"}
+.glow{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(60vmax 40vmax at 12% 18%,rgba(139,92,246,.22),transparent 60%),
+             radial-gradient(50vmax 40vmax at 100% 100%,rgba(139,92,246,.12),transparent 60%)}
+.grid{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:6vmin 6vmin;mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent 100%);-webkit-mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent 100%)}
+.stage>*{position:relative;z-index:1;min-width:0}
+.panel{background:linear-gradient(160deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:1.2vmin;padding:2.4vmin 2.8vmin}
+.label{font-size:1.5vmin;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin:0 0 1.4vmin}
+.label b{color:var(--violet-hi);font-weight:600}
+
+.clock{grid-area:clock;display:flex;align-items:center;gap:3vmin;border:none;background:none;padding:0 1vmin}
+.ring{width:36vmin;height:36vmin;flex:none;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .track{stroke:var(--line);fill:none;stroke-width:1.2}
+.ring .sec{stroke:var(--violet);fill:none;stroke-width:2.2;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(139,92,246,.8))}
+.ring .tick{stroke:var(--grey);opacity:.45;stroke-width:.8}
+.ring .center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.time{font-family:var(--f-display);font-weight:700;font-size:6.2vmin;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1}
+.time small{font-size:2.6vmin;color:var(--violet-hi);margin-left:.5vmin;font-weight:500}
+.dateblock{display:flex;flex-direction:column;gap:1vmin}
+.day{font-family:var(--f-display);font-size:5.4vmin;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.05}
+.date{font-size:3vmin;color:var(--grey)}
+.week{margin-top:1vmin;display:inline-flex;gap:1.2vmin;align-items:center;font-size:1.9vmin;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
+.week i{display:inline-block;width:1.2vmin;height:1.2vmin;border-radius:50%;background:var(--violet);box-shadow:0 0 1.4vmin var(--violet)}
+
+.weather{grid-area:weather;display:flex;flex-direction:column;gap:2vmin}
+.now{display:flex;align-items:center;gap:3vmin}
+.now svg.icon{width:15vmin;height:15vmin;flex:none}
+.temp{font-family:var(--f-display);font-size:11vmin;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.temp sup{font-size:4vmin;color:var(--violet-hi);vertical-align:top;margin-left:.4vmin}
+.cond{font-size:3vmin;margin-top:.8vmin}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vmin;margin-top:2vmin}
+.meta div{border-top:1px solid var(--line);padding-top:1.2vmin}
+.meta span{display:block;font-size:1.4vmin;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+.meta strong{font-size:2.8vmin;font-weight:500;font-variant-numeric:tabular-nums}
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:1.6vmin}
+.d{background:var(--bg);border:1px solid var(--line);border-radius:1vmin;padding:1.6vmin;text-align:center}
+.d .n{font-size:1.7vmin;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.d svg{width:6.4vmin;height:6.4vmin;margin:1vmin 0}
+.d .t{font-size:2.5vmin;font-weight:600;font-variant-numeric:tabular-nums}
+.d .t em{font-style:normal;color:var(--muted);font-weight:400}
+.d .p{font-size:1.6vmin;color:var(--violet-hi);margin-top:.4vmin}
+
+.tasks{grid-area:tasks}
+.tasks ul{list-style:none;margin:0;padding:0;display:grid;gap:1.2vmin}
+.tasks li{display:flex;align-items:center;gap:1.6vmin;font-size:2.6vmin}
+.tasks li::before{content:"";width:1.6vmin;height:1.6vmin;border:2px solid var(--violet);border-radius:.4vmin;flex:none}
+.tasks li.done{color:var(--muted);text-decoration:line-through}
+.tasks li.done::before{background:var(--violet)}
+.status{grid-area:weather2;display:flex;flex-direction:column;justify-content:space-between}
+.status .row{display:flex;justify-content:space-between;font-size:2.2vmin;color:var(--grey);padding:.9vmin 0;border-bottom:1px solid var(--line)}
+.status .row:last-child{border:none}
+.status .row b{color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
+#msg{color:var(--muted);font-size:1.7vmin}
+
+@media (max-width:760px){
+  body{overflow:auto}
+  .stage{grid-template-columns:1fr;grid-template-rows:auto;grid-template-areas:"clock" "weather" "tasks" "weather2";height:auto;padding:16px 0}
+  .clock{flex-direction:column;text-align:center}
+  .ring{width:70vw;height:70vw}.time{font-size:12vw}.day{font-size:9vw}.date{font-size:5vw}
+  .temp{font-size:18vw}.cond{font-size:5vw}.now svg.icon{width:26vw;height:26vw}
+  .label{font-size:3vw}.meta strong{font-size:5vw}.meta span{font-size:2.6vw}
+  .d .n{font-size:3vw}.d .t{font-size:4.4vw}.d .p{font-size:3vw}.d svg{width:11vw;height:11vw}
+  .tasks li{font-size:4.6vw}.status .row{font-size:4vw}#msg{font-size:3vw}
+}
+@media (prefers-reduced-motion:reduce){.ring .sec{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="glow"></div><div class="grid"></div>
+<main class="stage">
+  <section class="clock" aria-label="Uhrzeit">
+    <div class="ring">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="track" cx="50" cy="50" r="46"/>
+        <g id="ticks"></g>
+        <circle class="sec" id="sec" cx="50" cy="50" r="46" pathLength="60" stroke-dasharray="0 60"/>
+      </svg>
+      <div class="center"><div class="time" id="time">--:--</div></div>
+    </div>
+    <div class="dateblock">
+      <div class="day" id="day">&nbsp;</div>
+      <div class="date" id="date">&nbsp;</div>
+      <div class="week"><i></i><span id="week"></span></div>
+    </div>
+  </section>
+
+  <section class="panel weather" aria-label="Wetter Emden">
+    <p class="label">Wetter <b>/ Emden</b></p>
+    <div class="now">
+      <svg class="icon" id="nowIcon" viewBox="0 0 64 64" aria-hidden="true"></svg>
+      <div>
+        <div class="temp"><span id="temp">--</span><sup>°C</sup></div>
+        <div class="cond" id="cond">Lade Wetter</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div><span>Gefühlt</span><strong id="feel">--</strong></div>
+      <div><span>Wind</span><strong id="wind">--</strong></div>
+      <div><span>Luftfeuchte</span><strong id="hum">--</strong></div>
+    </div>
+    <div class="days" id="days"></div>
+  </section>
+
+  <section class="panel tasks" aria-label="Aufgaben">
+    <p class="label">Heute <b>/ Aufgaben</b></p>
+    <ul id="tasks"></ul>
+  </section>
+
+  <section class="panel status" aria-label="Status">
+    <div>
+      <p class="label">System <b>/ Status</b></p>
+      <div class="row"><span>Sonnenaufgang</span><b id="sunrise">--:--</b></div>
+      <div class="row"><span>Sonnenuntergang</span><b id="sunset">--:--</b></div>
+      <div class="row"><span>Regen heute</span><b id="rain">--</b></div>
+    </div>
+    <div id="msg"></div>
+  </section>
+</main>
+
+<script>
+/* ---- Einstellungen: hier anpassen ---- */
+const CONFIG = {
+  lat: 53.3671, lon: 7.2064, tz: "Europe/Berlin",
+  tasks: [
+    {t: "Fernseher aufgeräumt", done: true},
+    {t: "Dashboard auf den TV bringen", done: false},
+    {t: "Notizen im Second Brain ordnen", done: false}
+  ]
+};
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+
+/* Ticks around the ring */
+(function(){
+  let g = "";
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * Math.PI * 2, long = i % 5 === 0;
+    const r1 = long ? 40.5 : 42.5, r2 = 44;
+    g += `<line class="tick" x1="${50 + Math.cos(a) * r1}" y1="${50 + Math.sin(a) * r1}" x2="${50 + Math.cos(a) * r2}" y2="${50 + Math.sin(a) * r2}"/>`;
+  }
+  $("ticks").innerHTML = g;
+})();
+
+/* Clock */
+function weekNo(d){
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n);
+  return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+}
+function tick(){
+  const d = new Date();
+  $("time").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
+  $("sec").setAttribute("stroke-dasharray", (d.getSeconds() + d.getMilliseconds() / 1000).toFixed(2) + " 60");
+  $("day").textContent = d.toLocaleDateString("de-DE", {weekday: "long"});
+  $("date").textContent = d.toLocaleDateString("de-DE", {day: "numeric", month: "long", year: "numeric"});
+  $("week").textContent = "Kalenderwoche " + weekNo(d);
+}
+tick(); setInterval(tick, 250);
+
+/* Tasks */
+$("tasks").innerHTML = CONFIG.tasks.map(x => `<li class="${x.done ? "done" : ""}">${x.t.replace(/[<>&]/g, "")}</li>`).join("");
+
+/* Weather icons (simple line glyphs, violet + grey) */
+const V = "#8b5cf6", G = "#a3a0b2";
+const cloud = `<path d="M20 44h26a9 9 0 0 0 0-18 13 13 0 0 0-25-3 10.5 10.5 0 0 0-1 21z" fill="none" stroke="${G}" stroke-width="2.6" stroke-linejoin="round"/>`;
+const sun = `<circle cx="32" cy="32" r="9" fill="none" stroke="${V}" stroke-width="2.8"/>` +
+  [...Array(8)].map((_, i) => { const a = i * Math.PI / 4; return `<line x1="${32 + Math.cos(a) * 14}" y1="${32 + Math.sin(a) * 14}" x2="${32 + Math.cos(a) * 19}" y2="${32 + Math.sin(a) * 19}" stroke="${V}" stroke-width="2.8" stroke-linecap="round"/>`; }).join("");
+const drops = `<g stroke="${V}" stroke-width="2.8" stroke-linecap="round"><line x1="24" y1="50" x2="21" y2="57"/><line x1="33" y1="50" x2="30" y2="57"/><line x1="42" y1="50" x2="39" y2="57"/></g>`;
+const flakes = `<g fill="${V}"><circle cx="23" cy="53" r="2.2"/><circle cx="32" cy="56" r="2.2"/><circle cx="41" cy="53" r="2.2"/></g>`;
+const bolt = `<path d="M34 46l-6 9h6l-3 7" fill="none" stroke="${V}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+const fog = `<g stroke="${G}" stroke-width="2.6" stroke-linecap="round"><line x1="14" y1="26" x2="50" y2="26"/><line x1="10" y1="34" x2="54" y2="34"/><line x1="16" y1="42" x2="48" y2="42"/></g>`;
+function wx(code){
+  if (code === 0) return ["Klar", sun];
+  if (code <= 2) return ["Heiter", `<g transform="translate(-6,-8) scale(.7)">${sun}</g><g transform="translate(6,2) scale(.85)">${cloud}</g>`];
+  if (code === 3) return ["Bedeckt", cloud];
+  if (code <= 48) return ["Nebel", fog];
+  if (code <= 57) return ["Nieselregen", cloud + drops];
+  if (code <= 67) return ["Regen", cloud + drops];
+  if (code <= 77) return ["Schnee", cloud + flakes];
+  if (code <= 82) return ["Schauer", cloud + drops];
+  if (code <= 86) return ["Schneeschauer", cloud + flakes];
+  return ["Gewitter", cloud + bolt];
+}
+$("nowIcon").innerHTML = cloud;
+
+function hhmm(s){ return s ? s.slice(11, 16) : "--:--"; }
+async function loadWeather(){
+  const url = "https://api.open-meteo.com/v1/forecast?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon +
+    "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m" +
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
+    "&timezone=" + encodeURIComponent(CONFIG.tz) + "&forecast_days=5";
+  try {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
+    const r = await fetch(url, {signal: ctl.signal}); clearTimeout(to);
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json(), c = j.current, d = j.daily;
+    const [txt, ico] = wx(c.weather_code);
+    $("temp").textContent = Math.round(c.temperature_2m);
+    $("cond").textContent = txt;
+    $("nowIcon").innerHTML = ico;
+    $("feel").textContent = Math.round(c.apparent_temperature) + "°";
+    $("wind").textContent = Math.round(c.wind_speed_10m) + " km/h";
+    $("hum").textContent = Math.round(c.relative_humidity_2m) + " %";
+    $("sunrise").textContent = hhmm(d.sunrise[0]);
+    $("sunset").textContent = hhmm(d.sunset[0]);
+    $("rain").textContent = d.precipitation_probability_max[0] + " %";
+    $("days").innerHTML = [1, 2, 3, 4].map(i => {
+      const dt = new Date(d.time[i] + "T12:00:00");
+      const [, ic] = wx(d.weather_code[i]);
+      return `<div class="d"><div class="n">${dt.toLocaleDateString("de-DE", {weekday: "short"})}</div>` +
+        `<svg viewBox="0 0 64 64" aria-hidden="true">${ic}</svg>` +
+        `<div class="t">${Math.round(d.temperature_2m_max[i])}° <em>${Math.round(d.temperature_2m_min[i])}°</em></div>` +
+        `<div class="p">${d.precipitation_probability_max[i]} % Regen</div></div>`;
+    }).join("");
+    $("msg").textContent = "Wetter aktualisiert " + new Date().toLocaleTimeString("de-DE", {hour: "2-digit", minute: "2-digit"});
+  } catch (e) {
+    $("cond").textContent = "Wetter nicht erreichbar";
+    $("msg").textContent = "Wetterdaten werden alle 15 Minuten neu versucht.";
+  }
+}
+loadWeather(); setInterval(loadWeather, 15 * 60 * 1000);
+
+/* Keep the screen awake where allowed */
+try { navigator.wakeLock && navigator.wakeLock.request("screen").catch(() => {}); } catch (e) {}
+</script>
+</body>
+</html>
