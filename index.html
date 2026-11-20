@@ -3,252 +3,590 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emden Control</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Space+Grotesk:wght@400;500;600&display=swap">
+<title>Kommandozentrale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
 <style>
-/* Layout: one 16:9 screen. Left = clock ring + date. Right = weather now + 4 days. Bottom band = tasks + status. */
+/* Buehne 1920x1080, per JS auf den Bildschirm skaliert.
+   Links Markt + News, Mitte Reaktor-Uhr ueber dem Auto, rechts Shorts-Bot + Manager, unten News-Laufband. */
 :root{
-  --bg:#0c0a13; --panel:#15121f; --panel-2:#1b1727; --line:#2c2740;
-  --text:#ebe8f5; --muted:#908ca3; --violet:#8b5cf6; --violet-hi:#b69cff; --grey:#a3a0b2;
-  --f-display:"Orbitron","Space Grotesk",system-ui,sans-serif;
-  --f-body:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bg:#06050b; --panel:rgba(17,14,28,.62); --panel-solid:#110e1c; --line:rgba(167,139,250,.22); --line-hi:rgba(196,181,253,.7);
+  --violet:#8b5cf6; --violet-hi:#c4b5fd; --violet-deep:#5b21b6; --grey:#9d99ae; --dim:#5f5b70; --text:#eeebf8;
+  --up:#5eead4; --down:#fb7185;
+  --f-num:"Orbitron","Rajdhani",system-ui,sans-serif;
+  --f-ui:"Rajdhani",system-ui,"Segoe UI",sans-serif;
+  --f-mono:"Share Tech Mono",ui-monospace,Consolas,monospace;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-body);overflow:hidden;
-  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.stage{position:relative;height:100%;min-height:100vh;display:grid;gap:2vmin;padding:3vmin 1vmin;
-  grid-template-columns:1.05fr 1fr;grid-template-rows:1fr auto;
-  grid-template-areas:"clock weather" "tasks weather2"}
-.glow{position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(60vmax 40vmax at 12% 18%,rgba(139,92,246,.22),transparent 60%),
-             radial-gradient(50vmax 40vmax at 100% 100%,rgba(139,92,246,.12),transparent 60%)}
-.grid{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
-  background-size:6vmin 6vmin;mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent 100%);-webkit-mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent 100%)}
-.stage>*{position:relative;z-index:1;min-width:0}
-.panel{background:linear-gradient(160deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:1.2vmin;padding:2.4vmin 2.8vmin}
-.label{font-size:1.5vmin;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin:0 0 1.4vmin}
-.label b{color:var(--violet-hi);font-weight:600}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden}
+body{font-family:var(--f-ui);color:var(--text)}
+#app{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
 
-.clock{grid-area:clock;display:flex;align-items:center;gap:3vmin;border:none;background:none;padding:0 1vmin}
-.ring{width:36vmin;height:36vmin;flex:none;position:relative}
-.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.ring .track{stroke:var(--line);fill:none;stroke-width:1.2}
-.ring .sec{stroke:var(--violet);fill:none;stroke-width:2.2;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(139,92,246,.8))}
-.ring .tick{stroke:var(--grey);opacity:.45;stroke-width:.8}
-.ring .center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
-.time{font-family:var(--f-display);font-weight:700;font-size:6.2vmin;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1}
-.time small{font-size:2.6vmin;color:var(--violet-hi);margin-left:.5vmin;font-weight:500}
-.dateblock{display:flex;flex-direction:column;gap:1vmin}
-.day{font-family:var(--f-display);font-size:5.4vmin;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.05}
-.date{font-size:3vmin;color:var(--grey)}
-.week{margin-top:1vmin;display:inline-flex;gap:1.2vmin;align-items:center;font-size:1.9vmin;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
-.week i{display:inline-block;width:1.2vmin;height:1.2vmin;border-radius:50%;background:var(--violet);box-shadow:0 0 1.4vmin var(--violet)}
+/* ---------- Hintergrund ---------- */
+.bg{position:absolute;inset:0;overflow:hidden}
+#car{position:absolute;left:50%;bottom:70px;width:1500px;transform:translateX(-50%);object-fit:contain;
+  filter:grayscale(.35) contrast(1.15) brightness(.62) saturate(.8);
+  -webkit-mask-image:radial-gradient(60% 62% at 50% 58%,#000 45%,transparent 100%);mask-image:radial-gradient(60% 62% at 50% 58%,#000 45%,transparent 100%)}
+.tint{position:absolute;inset:0;background:radial-gradient(1200px 700px at 50% 60%,rgba(91,33,182,.28),transparent 70%);mix-blend-mode:screen}
+.tint2{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,5,11,.75),rgba(6,5,11,.15) 30%,rgba(6,5,11,.2) 70%,rgba(6,5,11,.9))}
+#hex{position:absolute;inset:0;opacity:.5}
+.scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px)}
+.sweep{position:absolute;left:0;right:0;height:180px;top:-200px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(139,92,246,.07),transparent);animation:sweep 9s linear infinite}
+@keyframes sweep{to{top:1100px}}
+.carlabel{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);font-family:var(--f-mono);font-size:15px;letter-spacing:.3em;color:var(--dim)}
 
-.weather{grid-area:weather;display:flex;flex-direction:column;gap:2vmin}
-.now{display:flex;align-items:center;gap:3vmin}
-.now svg.icon{width:15vmin;height:15vmin;flex:none}
-.temp{font-family:var(--f-display);font-size:11vmin;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
-.temp sup{font-size:4vmin;color:var(--violet-hi);vertical-align:top;margin-left:.4vmin}
-.cond{font-size:3vmin;margin-top:.8vmin}
-.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vmin;margin-top:2vmin}
-.meta div{border-top:1px solid var(--line);padding-top:1.2vmin}
-.meta span{display:block;font-size:1.4vmin;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
-.meta strong{font-size:2.8vmin;font-weight:500;font-variant-numeric:tabular-nums}
-.days{display:grid;grid-template-columns:repeat(4,1fr);gap:1.6vmin}
-.d{background:var(--bg);border:1px solid var(--line);border-radius:1vmin;padding:1.6vmin;text-align:center}
-.d .n{font-size:1.7vmin;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
-.d svg{width:6.4vmin;height:6.4vmin;margin:1vmin 0}
-.d .t{font-size:2.5vmin;font-weight:600;font-variant-numeric:tabular-nums}
-.d .t em{font-style:normal;color:var(--muted);font-weight:400}
-.d .p{font-size:1.6vmin;color:var(--violet-hi);margin-top:.4vmin}
+/* ---------- Raster ---------- */
+.ui{position:absolute;inset:0;display:grid;grid-template-columns:520px minmax(0,1fr) 520px;grid-template-rows:64px 1fr 56px;gap:22px 28px;padding:26px 34px 22px}
+.top{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:12px}
+.brand{display:flex;align-items:center;gap:16px;font-family:var(--f-num);font-weight:700;font-size:24px;letter-spacing:.28em}
+.brand .tri{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:24px solid var(--violet);filter:drop-shadow(0 0 8px var(--violet))}
+.brand small{font-family:var(--f-mono);font-weight:400;font-size:15px;letter-spacing:.2em;color:var(--violet-hi)}
+.sys{display:flex;gap:34px;font-family:var(--f-mono);font-size:17px;color:var(--grey);letter-spacing:.12em}
+.sys b{color:var(--text);font-weight:400}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--up);margin-right:8px;box-shadow:0 0 10px var(--up);animation:blink 2.4s infinite}
+.dot.warn{background:#fbbf24;box-shadow:0 0 10px #fbbf24}
+@keyframes blink{50%{opacity:.35}}
+.col{display:flex;flex-direction:column;gap:22px;min-height:0}
+.center{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px}
 
-.tasks{grid-area:tasks}
-.tasks ul{list-style:none;margin:0;padding:0;display:grid;gap:1.2vmin}
-.tasks li{display:flex;align-items:center;gap:1.6vmin;font-size:2.6vmin}
-.tasks li::before{content:"";width:1.6vmin;height:1.6vmin;border:2px solid var(--violet);border-radius:.4vmin;flex:none}
-.tasks li.done{color:var(--muted);text-decoration:line-through}
-.tasks li.done::before{background:var(--violet)}
-.status{grid-area:weather2;display:flex;flex-direction:column;justify-content:space-between}
-.status .row{display:flex;justify-content:space-between;font-size:2.2vmin;color:var(--grey);padding:.9vmin 0;border-bottom:1px solid var(--line)}
-.status .row:last-child{border:none}
-.status .row b{color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
-#msg{color:var(--muted);font-size:1.7vmin}
+/* ---------- Kacheln ---------- */
+.tile{position:relative;background:var(--panel);border:1px solid var(--line);padding:22px 26px;outline:none;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:border-color .25s,box-shadow .25s,transform .25s;
+  clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,26px 100%,0 calc(100% - 26px))}
+.tile::before,.tile::after{content:"";position:absolute;width:22px;height:22px;border:2px solid var(--violet);opacity:.7;transition:opacity .25s}
+.tile::before{left:8px;top:8px;border-right:0;border-bottom:0}
+.tile::after{right:8px;bottom:8px;border-left:0;border-top:0}
+.tile:focus,.tile.focus{border-color:var(--line-hi);box-shadow:inset 0 0 40px rgba(139,92,246,.25),0 0 30px rgba(139,92,246,.35);transform:scale(1.015)}
+.tile:focus::before,.tile:focus::after{opacity:1}
+.hint{position:absolute;right:30px;top:18px;font-family:var(--f-mono);font-size:14px;letter-spacing:.2em;color:var(--violet-hi);opacity:0;transition:opacity .25s}
+.tile:focus .hint{opacity:1}
+.label{font-family:var(--f-mono);font-size:15px;letter-spacing:.3em;color:var(--grey);text-transform:uppercase;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.label i{width:26px;height:2px;background:var(--violet);box-shadow:0 0 6px var(--violet)}
+.num{font-family:var(--f-num);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.pos{color:var(--up)} .neg{color:var(--down)}
 
-@media (max-width:760px){
-  body{overflow:auto}
-  .stage{grid-template-columns:1fr;grid-template-rows:auto;grid-template-areas:"clock" "weather" "tasks" "weather2";height:auto;padding:16px 0}
-  .clock{flex-direction:column;text-align:center}
-  .ring{width:70vw;height:70vw}.time{font-size:12vw}.day{font-size:9vw}.date{font-size:5vw}
-  .temp{font-size:18vw}.cond{font-size:5vw}.now svg.icon{width:26vw;height:26vw}
-  .label{font-size:3vw}.meta strong{font-size:5vw}.meta span{font-size:2.6vw}
-  .d .n{font-size:3vw}.d .t{font-size:4.4vw}.d .p{font-size:3vw}.d svg{width:11vw;height:11vw}
-  .tasks li{font-size:4.6vw}.status .row{font-size:4vw}#msg{font-size:3vw}
-}
-@media (prefers-reduced-motion:reduce){.ring .sec{transition:none!important}}
+/* Markt */
+.mk-row{display:flex;align-items:baseline;gap:18px}
+.mk-price{font-size:62px;line-height:1}
+.mk-cur{font-size:26px;color:var(--violet-hi);font-family:var(--f-num)}
+.mk-chg{font-family:var(--f-num);font-size:24px;font-weight:600;margin-top:8px}
+.mk-sub{font-family:var(--f-mono);font-size:14px;color:var(--dim);letter-spacing:.1em;margin-top:4px}
+#spark{width:100%;height:96px;margin-top:12px;display:block}
+.kv{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:16px;color:var(--grey);margin-top:10px}
+.kv b{color:var(--text);font-weight:400}
+
+/* News */
+.news{flex:1;min-height:0;overflow:hidden}
+.news ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.news li{display:grid;grid-template-columns:62px 1fr;gap:12px;font-size:21px;line-height:1.22;font-weight:500}
+.news li time{font-family:var(--f-mono);font-size:16px;color:var(--violet-hi);padding-top:3px}
+.news li span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.news li small{display:block;font-family:var(--f-mono);font-size:13px;color:var(--dim);letter-spacing:.12em;margin-top:2px}
+
+/* Reaktor */
+.reactor{position:relative;width:560px;height:560px;transform:scale(.8);margin:-56px 0 -60px}
+.reactor svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.spin{transform-origin:280px 280px;animation:spin 60s linear infinite}
+.spin.r{animation-duration:24s;animation-direction:reverse}
+.spin.f{animation-duration:12s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.clock{font-family:var(--f-num);font-weight:900;font-size:118px;line-height:1;letter-spacing:.03em;text-shadow:0 0 30px rgba(139,92,246,.6)}
+.secs{font-family:var(--f-mono);font-size:22px;color:var(--violet-hi);letter-spacing:.3em;margin-top:6px}
+.day{font-family:var(--f-ui);font-weight:600;font-size:30px;letter-spacing:.32em;text-transform:uppercase;margin-top:14px}
+.date{font-family:var(--f-mono);font-size:18px;color:var(--grey);letter-spacing:.2em;margin-top:4px}
+
+/* Fahrzeug-Hologramm */
+.bay{position:relative;width:100%;max-width:760px;height:300px;margin-top:-6px}
+#carCanvas{position:absolute;inset:0;width:100%;height:100%}
+.pad{position:absolute;left:50%;bottom:34px;width:600px;height:600px;margin-left:-300px;transform:perspective(900px) rotateX(78deg);transform-origin:50% 100%;pointer-events:none}
+.pad i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(139,92,246,.55);box-shadow:0 0 30px rgba(139,92,246,.45),inset 0 0 40px rgba(139,92,246,.25)}
+.pad i:nth-child(2){inset:70px;border-style:dashed;border-color:rgba(196,181,253,.5);animation:spin 18s linear infinite}
+.pad i:nth-child(3){inset:150px;border-width:1px;animation:spin 30s linear infinite reverse}
+.carinfo{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:26px;font-family:var(--f-mono);font-size:16px;letter-spacing:.26em;color:var(--grey)}
+.plate{display:inline-flex;align-items:center;border:2px solid var(--violet-hi);color:var(--text);font-family:var(--f-ui);font-weight:700;font-size:20px;letter-spacing:.12em;padding:0 12px 0 0;box-shadow:0 0 14px rgba(139,92,246,.5)}
+.plate em{font-style:normal;background:var(--violet);color:var(--bg);font-size:12px;padding:5px 6px;margin-right:10px;letter-spacing:.05em}
+.carph{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);font-family:var(--f-mono);font-size:15px;letter-spacing:.3em;color:var(--dim)}
+/* Wetter */
+.wx{display:flex;align-items:center;gap:26px;padding:12px 30px;margin-top:10px}
+.wx svg{width:72px;height:72px}
+.wx-t{font-size:56px;line-height:1}
+.wx-c{font-size:22px;font-weight:600;letter-spacing:.06em}
+.wx-m{font-family:var(--f-mono);font-size:15px;color:var(--grey);letter-spacing:.1em;margin-top:4px}
+
+/* Shorts */
+.yt-big{font-size:60px;line-height:1}
+.yt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.yt-grid div{border-top:1px solid var(--line);padding-top:10px}
+.yt-grid span{display:block;font-family:var(--f-mono);font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.yt-grid strong{font-family:var(--f-num);font-size:28px;font-weight:600}
+.bars{display:flex;align-items:flex-end;gap:8px;height:70px;margin-top:18px}
+.bars i{flex:1;background:linear-gradient(180deg,var(--violet-hi),var(--violet-deep));min-height:3px;box-shadow:0 0 10px rgba(139,92,246,.5)}
+.empty{font-size:21px;color:var(--grey);line-height:1.35}
+
+/* Manager */
+.mgr{flex:1;min-height:0}
+.mgr-head{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.orb{width:46px;height:46px;border-radius:50%;flex:none;background:radial-gradient(circle,#fff 0 8%,var(--violet-hi) 18%,var(--violet) 40%,transparent 70%);box-shadow:0 0 24px var(--violet);animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.86);opacity:.75}}
+.mgr-name{font-family:var(--f-num);font-size:20px;letter-spacing:.3em}
+.mgr-name small{display:block;font-family:var(--f-mono);font-size:13px;color:var(--dim);letter-spacing:.2em}
+#mgrText{font-size:23px;line-height:1.36;font-weight:500;color:#dcd7ee}
+#mgrText::after{content:"▍";color:var(--violet-hi);animation:blink 1s steps(1) infinite}
+
+/* Laufband */
+.ticker{grid-column:1/-1;display:flex;align-items:center;gap:20px;border-top:1px solid var(--line);overflow:hidden;font-size:20px;font-weight:500}
+.ticker b{font-family:var(--f-mono);font-weight:400;font-size:15px;letter-spacing:.3em;color:var(--bg);background:var(--violet);padding:5px 12px;flex:none}
+.track{flex:1;overflow:hidden;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.track span{display:inline-block;padding-left:100%;animation:tick linear infinite}
+.track em{font-style:normal;color:var(--violet-hi);margin:0 22px}
+@keyframes tick{to{transform:translateX(-100%)}}
+
+/* ---------- Detailfenster ---------- */
+#detail{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,5,11,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:10}
+#detail.open{display:flex;animation:fade .25s ease-out}
+@keyframes fade{from{opacity:0}}
+.win{position:relative;width:1480px;max-height:900px;background:linear-gradient(160deg,rgba(28,22,46,.96),rgba(12,10,20,.97));border:1px solid var(--line-hi);padding:40px 50px;
+  box-shadow:0 0 80px rgba(139,92,246,.35);clip-path:polygon(0 0,calc(100% - 40px) 0,100% 40px,100% 100%,40px 100%,0 calc(100% - 40px));animation:grow .3s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes grow{from{transform:scale(.94)}}
+.win h2{margin:0 0 6px;font-family:var(--f-num);font-size:38px;letter-spacing:.14em;font-weight:700}
+.win .sub{font-family:var(--f-mono);font-size:16px;color:var(--grey);letter-spacing:.18em;margin-bottom:26px}
+.close{position:absolute;right:52px;top:44px;font-family:var(--f-mono);font-size:16px;letter-spacing:.2em;color:var(--violet-hi)}
+.tabs{display:flex;gap:12px;margin-bottom:18px}
+.tabs button{font:600 20px var(--f-ui);letter-spacing:.14em;color:var(--grey);background:transparent;border:1px solid var(--line);padding:8px 22px;cursor:pointer}
+.tabs button.on{color:var(--bg);background:var(--violet-hi);border-color:var(--violet-hi)}
+#chart{width:100%;height:470px;display:block}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:22px}
+.stats div{border-left:2px solid var(--violet);padding-left:14px}
+.stats span{display:block;font-family:var(--f-mono);font-size:14px;color:var(--dim);letter-spacing:.2em}
+.stats strong{font-family:var(--f-num);font-size:30px;font-weight:600}
+.list{max-height:700px;overflow:auto;display:flex;flex-direction:column;gap:6px;scrollbar-width:none}
+.list::-webkit-scrollbar{display:none}
+.item{padding:14px 18px;border:1px solid transparent;border-left:3px solid var(--line)}
+.item.sel{border-color:var(--line-hi);border-left-color:var(--violet);background:rgba(139,92,246,.12)}
+.item h3{margin:0;font-size:25px;font-weight:600;line-height:1.25}
+.item p{margin:8px 0 0;font-size:20px;color:#cfc9e3;line-height:1.4;display:none}
+.item.sel p{display:block}
+.item small{font-family:var(--f-mono);font-size:14px;color:var(--violet-hi);letter-spacing:.14em}
+table{width:100%;border-collapse:collapse;font-size:21px}
+th{font-family:var(--f-mono);font-weight:400;font-size:14px;letter-spacing:.2em;color:var(--dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:12px 10px;border-bottom:1px solid rgba(167,139,250,.1)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.hours{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;text-align:center}
+.hours div{border:1px solid var(--line);padding:12px 4px}
+.hours svg{width:46px;height:46px}
+.hours b{display:block;font-family:var(--f-num);font-size:22px}
+.hours span{font-family:var(--f-mono);font-size:14px;color:var(--grey)}
+.navhint{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);font-family:var(--f-mono);font-size:13px;letter-spacing:.24em;color:var(--dim)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
+<div id="app">
+  <div class="bg">
+    <canvas id="hex" width="1920" height="1080"></canvas>
+    <div class="tint"></div><div class="tint2"></div><div class="scan"></div><div class="sweep"></div>
+  </div>
 
-<div class="glow"></div><div class="grid"></div>
-<main class="stage">
-  <section class="clock" aria-label="Uhrzeit">
-    <div class="ring">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle class="track" cx="50" cy="50" r="46"/>
-        <g id="ticks"></g>
-        <circle class="sec" id="sec" cx="50" cy="50" r="46" pathLength="60" stroke-dasharray="0 60"/>
-      </svg>
-      <div class="center"><div class="time" id="time">--:--</div></div>
-    </div>
-    <div class="dateblock">
-      <div class="day" id="day">&nbsp;</div>
-      <div class="date" id="date">&nbsp;</div>
-      <div class="week"><i></i><span id="week"></span></div>
-    </div>
-  </section>
-
-  <section class="panel weather" aria-label="Wetter Emden">
-    <p class="label">Wetter <b>/ Emden</b></p>
-    <div class="now">
-      <svg class="icon" id="nowIcon" viewBox="0 0 64 64" aria-hidden="true"></svg>
-      <div>
-        <div class="temp"><span id="temp">--</span><sup>°C</sup></div>
-        <div class="cond" id="cond">Lade Wetter</div>
+  <div class="ui">
+    <header class="top">
+      <div class="brand"><span class="tri"></span>KOMMANDOZENTRALE <small>// J.A.R.V.I.S. MODUS</small></div>
+      <div class="sys">
+        <span><span class="dot" id="sysDot"></span>SYSTEME <b id="sysState">ONLINE</b></span>
+        <span>SYNC <b id="sync">--:--</b></span>
+        <span>EMDEN <b id="topTemp">--°</b></span>
       </div>
-    </div>
-    <div class="meta">
-      <div><span>Gefühlt</span><strong id="feel">--</strong></div>
-      <div><span>Wind</span><strong id="wind">--</strong></div>
-      <div><span>Luftfeuchte</span><strong id="hum">--</strong></div>
-    </div>
-    <div class="days" id="days"></div>
-  </section>
+    </header>
 
-  <section class="panel tasks" aria-label="Aufgaben">
-    <p class="label">Heute <b>/ Aufgaben</b></p>
-    <ul id="tasks"></ul>
-  </section>
+    <section class="col">
+      <div class="tile" tabindex="0" data-detail="markt">
+        <span class="hint">OK ▸ DETAILS</span>
+        <div class="label"><i></i>MSCI World</div>
+        <div class="mk-row"><span class="num mk-price" id="mkPrice">---,--</span><span class="mk-cur">€</span></div>
+        <div class="mk-chg" id="mkChg">&nbsp;</div>
+        <div class="mk-sub" id="mkSub">ISHARES CORE MSCI WORLD · XETRA</div>
+        <svg id="spark" viewBox="0 0 460 96" preserveAspectRatio="none"></svg>
+        <div class="kv"><span>30 TAGE <b id="mk30">--</b></span><span>1 JAHR <b id="mk1y">--</b></span></div>
+      </div>
+      <div class="tile news" tabindex="0" data-detail="news">
+        <span class="hint">OK ▸ ALLE</span>
+        <div class="label"><i></i>Markt-News</div>
+        <ul id="newsList"><li><time>--:--</time><span>Nachrichten werden geladen</span></li></ul>
+      </div>
+    </section>
 
-  <section class="panel status" aria-label="Status">
-    <div>
-      <p class="label">System <b>/ Status</b></p>
-      <div class="row"><span>Sonnenaufgang</span><b id="sunrise">--:--</b></div>
-      <div class="row"><span>Sonnenuntergang</span><b id="sunset">--:--</b></div>
-      <div class="row"><span>Regen heute</span><b id="rain">--</b></div>
-    </div>
-    <div id="msg"></div>
-  </section>
-</main>
+    <section class="center">
+      <div class="reactor">
+        <svg viewBox="0 0 560 560" aria-hidden="true">
+          <defs>
+            <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <g class="spin"><circle cx="280" cy="280" r="270" fill="none" stroke="rgba(167,139,250,.35)" stroke-width="1" stroke-dasharray="2 10"/></g>
+          <g id="ticks"></g>
+          <circle cx="280" cy="280" r="232" fill="none" stroke="rgba(167,139,250,.15)" stroke-width="6"/>
+          <circle id="secArc" cx="280" cy="280" r="232" fill="none" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round" pathLength="60" stroke-dasharray="0 60" transform="rotate(-90 280 280)" filter="url(#glow)"/>
+          <g class="spin r">
+            <circle cx="280" cy="280" r="205" fill="none" stroke="#c4b5fd" stroke-width="3" pathLength="100" stroke-dasharray="22 11.33" opacity=".75"/>
+          </g>
+          <g class="spin f">
+            <circle cx="280" cy="280" r="188" fill="none" stroke="#8b5cf6" stroke-width="1.5" pathLength="100" stroke-dasharray="6 4 1 4" opacity=".6"/>
+          </g>
+          <circle cx="280" cy="280" r="172" fill="rgba(10,8,18,.55)" stroke="rgba(167,139,250,.3)" stroke-width="1"/>
+        </svg>
+        <div class="rc">
+          <div class="clock" id="clock">--:--</div>
+          <div class="secs" id="secs">SEK 00</div>
+          <div class="day" id="day">&nbsp;</div>
+          <div class="date" id="date">&nbsp;</div>
+        </div>
+      </div>
+      <div class="bay">
+        <div class="pad"><i></i><i></i><i></i></div>
+        <canvas id="carCanvas" width="1640" height="600"></canvas>
+        <div class="carph" id="carph">FAHRZEUGSCAN LÄUFT …</div>
+        <div class="carinfo"><span>BMW 5ER · F10</span><span class="plate"><em>D</em>EMD FH 777</span><span>STATUS: BEREIT</span></div>
+      </div>
+      <div class="tile wx" tabindex="0" data-detail="wetter">
+        <svg id="wxIcon" viewBox="0 0 64 64" aria-hidden="true"></svg>
+        <div><div class="num wx-t"><span id="wxT">--</span>°</div></div>
+        <div><div class="wx-c" id="wxC">Wetter wird geladen</div><div class="wx-m" id="wxM">EMDEN</div></div>
+      </div>
+    </section>
+
+    <section class="col">
+      <div class="tile" tabindex="0" data-detail="shorts">
+        <span class="hint">OK ▸ DETAILS</span>
+        <div class="label"><i></i>Shorts-Bot · GTA 6</div>
+        <div id="ytBody"><div class="empty">Verbindung zum Kanal wird eingerichtet.</div></div>
+      </div>
+      <div class="tile mgr" tabindex="0" data-detail="manager">
+        <span class="hint">OK ▸ VERLAUF</span>
+        <div class="mgr-head"><div class="orb"></div><div class="mgr-name">MANAGER<small id="mgrTime">STATUSBERICHT</small></div></div>
+        <div id="mgrText"></div>
+      </div>
+    </section>
+
+    <footer class="ticker"><b>LIVE</b><div class="track"><span id="tick">Börsennachrichten werden geladen</span></div></footer>
+  </div>
+
+  <div id="detail"><div class="win" id="win"></div></div>
+</div>
 
 <script>
-/* ---- Einstellungen: hier anpassen ---- */
-const CONFIG = {
-  lat: 53.3671, lon: 7.2064, tz: "Europe/Berlin",
-  tasks: [
-    {t: "Fernseher aufgeräumt", done: true},
-    {t: "Dashboard auf den TV bringen", done: false},
-    {t: "Notizen im Second Brain ordnen", done: false}
-  ]
-};
-
 const $ = id => document.getElementById(id);
-const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const de = (n, d = 2) => Number(n).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d});
+const int = n => Number(n).toLocaleString("de-DE");
+const pct = n => n == null ? "--" : (n > 0 ? "+" : "") + de(n) + " %";
+const cls = n => n > 0 ? "pos" : n < 0 ? "neg" : "";
+const hm = iso => new Date(iso).toLocaleTimeString("de-DE", {hour: "2-digit", minute: "2-digit"});
+let DATA = null, WX = null;
 
-/* Ticks around the ring */
+/* ---------- Skalierung auf den Bildschirm + Schutz vor Einbrennen ---------- */
+let drift = [0, 0];
+function fit(){
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  const x = (innerWidth - 1920 * s) / 2 + drift[0], y = (innerHeight - 1080 * s) / 2 + drift[1];
+  $("app").style.transform = `translate(${x}px,${y}px) scale(${s})`;
+}
+addEventListener("resize", fit); fit();
+setInterval(() => { drift = [Math.round(Math.random() * 8 - 4), Math.round(Math.random() * 8 - 4)]; fit(); }, 180000);
+
+/* ---------- Hex-Raster ---------- */
 (function(){
-  let g = "";
-  for (let i = 0; i < 60; i++) {
-    const a = i / 60 * Math.PI * 2, long = i % 5 === 0;
-    const r1 = long ? 40.5 : 42.5, r2 = 44;
-    g += `<line class="tick" x1="${50 + Math.cos(a) * r1}" y1="${50 + Math.sin(a) * r1}" x2="${50 + Math.cos(a) * r2}" y2="${50 + Math.sin(a) * r2}"/>`;
+  const c = $("hex"), g = c.getContext("2d"), r = 26, h = r * Math.sqrt(3);
+  g.strokeStyle = "rgba(139,92,246,.10)"; g.lineWidth = 1;
+  for (let row = -1; row * h < 1100; row++) for (let col = -1; col * r * 1.5 < 1950; col++) {
+    const cx = col * r * 1.5, cy = row * h + (col % 2 ? h / 2 : 0);
+    const d = Math.hypot(cx - 960, cy - 520); if (d > 900) continue;
+    g.globalAlpha = Math.max(0, 1 - d / 900);
+    g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i; g.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)); } g.closePath(); g.stroke();
   }
-  $("ticks").innerHTML = g;
 })();
 
-/* Clock */
-function weekNo(d){
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n);
-  return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
-}
+/* ---------- Reaktor-Uhr ---------- */
+(function(){
+  let s = "";
+  for (let i = 0; i < 120; i++) {
+    const a = i / 120 * Math.PI * 2, L = i % 10 === 0 ? 16 : i % 5 === 0 ? 10 : 5, r = 252;
+    s += `<line x1="${280 + Math.cos(a) * r}" y1="${280 + Math.sin(a) * r}" x2="${280 + Math.cos(a) * (r - L)}" y2="${280 + Math.sin(a) * (r - L)}" stroke="${i % 10 ? "rgba(157,153,174,.45)" : "#c4b5fd"}" stroke-width="${i % 10 ? 1 : 2}"/>`;
+  }
+  $("ticks").innerHTML = s;
+})();
 function tick(){
-  const d = new Date();
-  $("time").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
-  $("sec").setAttribute("stroke-dasharray", (d.getSeconds() + d.getMilliseconds() / 1000).toFixed(2) + " 60");
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  $("clock").textContent = p(d.getHours()) + ":" + p(d.getMinutes());
+  $("secs").textContent = "SEK " + p(d.getSeconds());
+  $("secArc").setAttribute("stroke-dasharray", (d.getSeconds() + d.getMilliseconds() / 1000).toFixed(2) + " 60");
   $("day").textContent = d.toLocaleDateString("de-DE", {weekday: "long"});
-  $("date").textContent = d.toLocaleDateString("de-DE", {day: "numeric", month: "long", year: "numeric"});
-  $("week").textContent = "Kalenderwoche " + weekNo(d);
+  $("date").textContent = d.toLocaleDateString("de-DE", {day: "2-digit", month: "long", year: "numeric"}).toUpperCase();
 }
-tick(); setInterval(tick, 250);
+tick(); setInterval(tick, 200);
 
-/* Tasks */
-$("tasks").innerHTML = CONFIG.tasks.map(x => `<li class="${x.done ? "done" : ""}">${x.t.replace(/[<>&]/g, "")}</li>`).join("");
+/* ---------- Zahlen hochzaehlen ---------- */
+function countTo(el, to, fmt){
+  const from = Number(el.dataset.v || 0), t0 = performance.now(), dur = 1400;
+  el.dataset.v = to;
+  (function step(t){
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fmt(from + (to - from) * e);
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+}
 
-/* Weather icons (simple line glyphs, violet + grey) */
-const V = "#8b5cf6", G = "#a3a0b2";
+/* ---------- Diagramme ---------- */
+function line(svg, vals, w, h, opts = {}){
+  if (!vals || vals.length < 2) { svg.innerHTML = ""; return; }
+  const pad = opts.pad || 4, min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const X = i => pad + i / (vals.length - 1) * (w - pad * 2), Y = v => pad + (1 - (v - min) / span) * (h - pad * 2);
+  const pts = vals.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
+  const up = vals[vals.length - 1] >= vals[0], col = up ? "#c4b5fd" : "#fb7185", id = "g" + Math.random().toString(36).slice(2, 7);
+  let grid = "";
+  for (let i = 1; i < 4; i++) grid += `<line x1="0" x2="${w}" y1="${h * i / 4}" y2="${h * i / 4}" stroke="rgba(167,139,250,.1)"/>`;
+  let axis = "";
+  if (opts.axis) {
+    axis += `<text x="${w - 6}" y="${pad + 18}" text-anchor="end" fill="#9d99ae" font-family="Share Tech Mono" font-size="16">${de(max)}</text>`;
+    axis += `<text x="${w - 6}" y="${h - pad - 8}" text-anchor="end" fill="#9d99ae" font-family="Share Tech Mono" font-size="16">${de(min)}</text>`;
+    (opts.labels || []).forEach(([i, txt]) => axis += `<text x="${X(i)}" y="${h + 26}" text-anchor="middle" fill="#5f5b70" font-family="Share Tech Mono" font-size="15">${txt}</text>`);
+  }
+  svg.innerHTML = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>` +
+    grid + `<polygon points="${X(0)},${h} ${pts} ${X(vals.length - 1)},${h}" fill="url(#${id})"/>` +
+    `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${opts.sw || 2.5}" stroke-linejoin="round" style="filter:drop-shadow(0 0 6px ${col})"/>` +
+    `<circle cx="${X(vals.length - 1)}" cy="${Y(vals[vals.length - 1])}" r="${opts.dot || 5}" fill="${col}" style="filter:drop-shadow(0 0 8px ${col})"/>` + axis;
+}
+
+/* ---------- Wetter-Symbole ---------- */
+const V = "#8b5cf6", VH = "#c4b5fd", G = "#9d99ae";
 const cloud = `<path d="M20 44h26a9 9 0 0 0 0-18 13 13 0 0 0-25-3 10.5 10.5 0 0 0-1 21z" fill="none" stroke="${G}" stroke-width="2.6" stroke-linejoin="round"/>`;
-const sun = `<circle cx="32" cy="32" r="9" fill="none" stroke="${V}" stroke-width="2.8"/>` +
-  [...Array(8)].map((_, i) => { const a = i * Math.PI / 4; return `<line x1="${32 + Math.cos(a) * 14}" y1="${32 + Math.sin(a) * 14}" x2="${32 + Math.cos(a) * 19}" y2="${32 + Math.sin(a) * 19}" stroke="${V}" stroke-width="2.8" stroke-linecap="round"/>`; }).join("");
+const sun = `<circle cx="32" cy="32" r="9" fill="none" stroke="${VH}" stroke-width="2.8"/>` + [...Array(8)].map((_, i) => { const a = i * Math.PI / 4; return `<line x1="${32 + Math.cos(a) * 14}" y1="${32 + Math.sin(a) * 14}" x2="${32 + Math.cos(a) * 19}" y2="${32 + Math.sin(a) * 19}" stroke="${VH}" stroke-width="2.8" stroke-linecap="round"/>`; }).join("");
+const moon = `<path d="M38 14a18 18 0 1 0 12 30 15 15 0 0 1-12-30z" fill="none" stroke="${VH}" stroke-width="2.8" stroke-linejoin="round"/>`;
 const drops = `<g stroke="${V}" stroke-width="2.8" stroke-linecap="round"><line x1="24" y1="50" x2="21" y2="57"/><line x1="33" y1="50" x2="30" y2="57"/><line x1="42" y1="50" x2="39" y2="57"/></g>`;
-const flakes = `<g fill="${V}"><circle cx="23" cy="53" r="2.2"/><circle cx="32" cy="56" r="2.2"/><circle cx="41" cy="53" r="2.2"/></g>`;
-const bolt = `<path d="M34 46l-6 9h6l-3 7" fill="none" stroke="${V}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+const flakes = `<g fill="${VH}"><circle cx="23" cy="53" r="2.2"/><circle cx="32" cy="56" r="2.2"/><circle cx="41" cy="53" r="2.2"/></g>`;
+const bolt = `<path d="M34 46l-6 9h6l-3 7" fill="none" stroke="${VH}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
 const fog = `<g stroke="${G}" stroke-width="2.6" stroke-linecap="round"><line x1="14" y1="26" x2="50" y2="26"/><line x1="10" y1="34" x2="54" y2="34"/><line x1="16" y1="42" x2="48" y2="42"/></g>`;
-function wx(code){
-  if (code === 0) return ["Klar", sun];
-  if (code <= 2) return ["Heiter", `<g transform="translate(-6,-8) scale(.7)">${sun}</g><g transform="translate(6,2) scale(.85)">${cloud}</g>`];
+function wx(code, night){
+  const s = night ? moon : sun;
+  if (code === 0) return ["Klar", s];
+  if (code <= 2) return ["Heiter", `<g transform="translate(-6,-8) scale(.7)">${s}</g><g transform="translate(6,2) scale(.85)">${cloud}</g>`];
   if (code === 3) return ["Bedeckt", cloud];
   if (code <= 48) return ["Nebel", fog];
-  if (code <= 57) return ["Nieselregen", cloud + drops];
-  if (code <= 67) return ["Regen", cloud + drops];
+  if (code <= 67) return [code <= 57 ? "Nieselregen" : "Regen", cloud + drops];
   if (code <= 77) return ["Schnee", cloud + flakes];
   if (code <= 82) return ["Schauer", cloud + drops];
   if (code <= 86) return ["Schneeschauer", cloud + flakes];
   return ["Gewitter", cloud + bolt];
 }
-$("nowIcon").innerHTML = cloud;
+$("wxIcon").innerHTML = cloud;
 
-function hhmm(s){ return s ? s.slice(11, 16) : "--:--"; }
 async function loadWeather(){
-  const url = "https://api.open-meteo.com/v1/forecast?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon +
-    "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m" +
-    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
-    "&timezone=" + encodeURIComponent(CONFIG.tz) + "&forecast_days=5";
   try {
-    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 12000);
-    const r = await fetch(url, {signal: ctl.signal}); clearTimeout(to);
-    if (!r.ok) throw new Error(r.status);
-    const j = await r.json(), c = j.current, d = j.daily;
-    const [txt, ico] = wx(c.weather_code);
-    $("temp").textContent = Math.round(c.temperature_2m);
-    $("cond").textContent = txt;
-    $("nowIcon").innerHTML = ico;
-    $("feel").textContent = Math.round(c.apparent_temperature) + "°";
-    $("wind").textContent = Math.round(c.wind_speed_10m) + " km/h";
-    $("hum").textContent = Math.round(c.relative_humidity_2m) + " %";
-    $("sunrise").textContent = hhmm(d.sunrise[0]);
-    $("sunset").textContent = hhmm(d.sunset[0]);
-    $("rain").textContent = d.precipitation_probability_max[0] + " %";
-    $("days").innerHTML = [1, 2, 3, 4].map(i => {
-      const dt = new Date(d.time[i] + "T12:00:00");
-      const [, ic] = wx(d.weather_code[i]);
-      return `<div class="d"><div class="n">${dt.toLocaleDateString("de-DE", {weekday: "short"})}</div>` +
-        `<svg viewBox="0 0 64 64" aria-hidden="true">${ic}</svg>` +
-        `<div class="t">${Math.round(d.temperature_2m_max[i])}° <em>${Math.round(d.temperature_2m_min[i])}°</em></div>` +
-        `<div class="p">${d.precipitation_probability_max[i]} % Regen</div></div>`;
-    }).join("");
-    $("msg").textContent = "Wetter aktualisiert " + new Date().toLocaleTimeString("de-DE", {hour: "2-digit", minute: "2-digit"});
-  } catch (e) {
-    $("cond").textContent = "Wetter nicht erreichbar";
-    $("msg").textContent = "Wetterdaten werden alle 15 Minuten neu versucht.";
+    const u = "https://api.open-meteo.com/v1/forecast?latitude=53.3671&longitude=7.2064&timezone=Europe%2FBerlin&forecast_days=6" +
+      "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day,relative_humidity_2m" +
+      "&hourly=temperature_2m,weather_code,precipitation_probability,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset";
+    const r = await fetch(u); if (!r.ok) throw 0;
+    WX = await r.json();
+    const c = WX.current, [t, ic] = wx(c.weather_code, !c.is_day);
+    $("wxIcon").innerHTML = ic; $("wxT").textContent = Math.round(c.temperature_2m); $("wxC").textContent = t;
+    $("wxM").textContent = `GEFÜHLT ${Math.round(c.apparent_temperature)}° · WIND ${Math.round(c.wind_speed_10m)} KM/H · REGEN ${WX.daily.precipitation_probability_max[0]} %`;
+    $("topTemp").textContent = Math.round(c.temperature_2m) + "°";
+  } catch (e) { $("wxC").textContent = "Wetter nicht erreichbar"; }
+}
+loadWeather(); setInterval(loadWeather, 15 * 60000);
+
+/* ---------- Daten aus data.json ---------- */
+let typing = null;
+function typeText(el, text){
+  clearInterval(typing); el.textContent = ""; let i = 0;
+  typing = setInterval(() => { el.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(typing); }, 28);
+}
+function render(){
+  const d = DATA, m = d.market, y = d.youtube;
+  const age = (Date.now() - new Date(d.updated)) / 60000;
+  $("sync").textContent = hm(d.updated);
+  $("sysDot").className = "dot" + (age > 90 || (d.errors || []).length ? " warn" : "");
+  $("sysState").textContent = age > 90 ? "DATEN ALT" : (d.errors || []).length ? "TEILWEISE" : "ONLINE";
+
+  if (m) {
+    countTo($("mkPrice"), m.price, v => de(v));
+    $("mkChg").innerHTML = `<span class="${cls(m.change_pct)}">${m.change_pct >= 0 ? "▲" : "▼"} ${pct(m.change_pct)}  (${m.change_abs > 0 ? "+" : ""}${de(m.change_abs)} €)</span>`;
+    $("mkSub").textContent = "ISHARES CORE MSCI WORLD · XETRA · " + hm(m.market_time);
+    $("mk30").innerHTML = `<span class="${cls(m.change_30d)}">${pct(m.change_30d)}</span>`;
+    $("mk1y").innerHTML = `<span class="${cls(m.change_1y)}">${pct(m.change_1y)}</span>`;
+    line($("spark"), m.spark, 460, 96);
+  }
+  const n = d.news || [];
+  $("newsList").innerHTML = n.slice(0, 6).map(x => `<li><time>${hm(x.time)}</time><span>${esc(x.title)}<small>${esc(x.source).toUpperCase()}</small></span></li>`).join("");
+  const tk = $("tick");
+  tk.innerHTML = n.map(x => `${esc(x.title)}<em>◆</em>`).join("");
+  tk.style.animationDuration = Math.max(40, tk.textContent.length / 7) + "s";
+
+  if (y && y.configured) {
+    $("ytBody").innerHTML = `<div class="num yt-big" id="ytTotal">0</div>
+      <div class="mk-sub">AUFRUFE GESAMT · ${y.channels.length} KANAL${y.channels.length > 1 ? "E" : ""}</div>
+      <div class="yt-grid"><div><span>HEUTE</span><strong class="pos" id="ytToday">0</strong></div>
+      <div><span>UPLOADS HEUTE</span><strong>${y.uploads_today}</strong></div><div><span>ABOS</span><strong>${int(y.subs_total)}</strong></div></div>
+      <div class="bars" id="ytBars"></div>`;
+    countTo($("ytTotal"), y.views_total, v => int(Math.round(v)));
+    countTo($("ytToday"), y.views_today, v => "+" + int(Math.round(v)));
+    const vids = y.channels.flatMap(c => c.latest).sort((a, b) => a.published < b.published ? -1 : 1).slice(-10);
+    const mx = Math.max(1, ...vids.map(v => v.views));
+    $("ytBars").innerHTML = vids.map(v => `<i style="height:${Math.max(4, v.views / mx * 100)}%"></i>`).join("");
+  } else {
+    $("ytBody").innerHTML = `<div class="empty">Kanal noch nicht verbunden.<br>Sobald der YouTube-Schlüssel eingetragen ist, laufen hier Aufrufe, Uploads und Abos ein.</div>`;
+  }
+  if (d.manager) {
+    $("mgrTime").textContent = "STATUSBERICHT · " + hm(d.updated);
+    if ($("mgrText").dataset.t !== d.manager.text) { $("mgrText").dataset.t = d.manager.text; typeText($("mgrText"), d.manager.text); }
   }
 }
-loadWeather(); setInterval(loadWeather, 15 * 60 * 1000);
+async function loadData(){
+  try {
+    const r = await fetch("data.json?t=" + Date.now(), {cache: "no-store"}); if (!r.ok) throw 0;
+    DATA = await r.json(); render();
+  } catch (e) { $("sysState").textContent = "KEINE DATEN"; $("sysDot").className = "dot warn"; }
+}
+loadData(); setInterval(loadData, 5 * 60000);
+setTimeout(() => location.reload(), 6 * 3600000); // holt neue Versionen der Seite
 
-/* Keep the screen awake where allowed */
-try { navigator.wakeLock && navigator.wakeLock.request("screen").catch(() => {}); } catch (e) {}
+/* ---------- Detailfenster ---------- */
+let range = 2, sel = 0;
+const RANGES = [["1 MONAT", 21], ["3 MONATE", 63], ["1 JAHR", 9999]];
+function detailHTML(k){
+  const d = DATA || {}, close = `<div class="close">◀ ZURÜCK</div>`;
+  if (k === "markt") {
+    const m = d.market; if (!m) return close + "<h2>MSCI WORLD</h2><p class='empty'>Keine Kursdaten.</p>";
+    return close + `<h2>MSCI WORLD</h2><div class="sub">${esc(m.label).toUpperCase()} · STAND ${hm(m.market_time)}</div>
+      <div class="tabs" id="tabs">${RANGES.map((r, i) => `<button class="${i === range ? "on" : ""}">${r[0]}</button>`).join("")}</div>
+      <svg id="chart" viewBox="0 0 1380 470" preserveAspectRatio="none"></svg>
+      <div class="stats"><div><span>KURS</span><strong>${de(m.price)} €</strong></div><div><span>HEUTE</span><strong class="${cls(m.change_pct)}">${pct(m.change_pct)}</strong></div>
+      <div><span>30 TAGE</span><strong class="${cls(m.change_30d)}">${pct(m.change_30d)}</strong></div><div><span>1 JAHR</span><strong class="${cls(m.change_1y)}">${pct(m.change_1y)}</strong></div>
+      <div><span>SPANNE 1 JAHR</span><strong>${de(m.low_1y)} – ${de(m.high_1y)}</strong></div></div>
+      <div class="navhint">◀ ▶ ZEITRAUM WECHSELN</div>`;
+  }
+  if (k === "news") return close + `<h2>MARKT-NEWS</h2><div class="sub">DEUTSCHE FINANZNACHRICHTEN · TAGESSCHAU · FINANZEN.NET · N-TV</div>
+      <div class="list" id="list">${(d.news || []).map((x, i) => `<div class="item${i === sel ? " sel" : ""}"><small>${hm(x.time)} · ${esc(x.source).toUpperCase()}</small><h3>${esc(x.title)}</h3><p>${esc(x.text || "")}</p></div>`).join("")}</div>
+      <div class="navhint">▲ ▼ MELDUNG WÄHLEN</div>`;
+  if (k === "shorts") {
+    const y = d.youtube || {};
+    if (!y.configured) return close + `<h2>SHORTS-BOT</h2><div class="sub">GTA 6 · AUTOMATISCHE UPLOADS</div><p class="empty">Der Kanal ist noch nicht verbunden. Dafür braucht der Datensammler einen YouTube-API-Schlüssel und den Kanalnamen.</p>`;
+    const rows = y.channels.flatMap(c => c.latest.map(v => ({...v, ch: c.name}))).sort((a, b) => a.published < b.published ? 1 : -1).slice(0, 10);
+    return close + `<h2>SHORTS-BOT</h2><div class="sub">GTA 6 · ${y.channels.map(c => esc(c.name).toUpperCase()).join(" · ")}</div>
+      <div class="stats"><div><span>AUFRUFE GESAMT</span><strong>${int(y.views_total)}</strong></div><div><span>HEUTE</span><strong class="pos">+${int(y.views_today)}</strong></div>
+      <div><span>GESTERN</span><strong>${y.views_yesterday == null ? "--" : int(y.views_yesterday)}</strong></div><div><span>UPLOADS HEUTE</span><strong>${y.uploads_today}</strong></div><div><span>ABONNENTEN</span><strong>${int(y.subs_total)}</strong></div></div>
+      <table style="margin-top:28px"><tr><th>VIDEO</th><th>KANAL</th><th>ONLINE SEIT</th><th class="r">AUFRUFE</th></tr>
+      ${rows.map(v => `<tr><td>${esc(v.title)}</td><td>${esc(v.ch)}</td><td>${new Date(v.published).toLocaleString("de-DE", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"})}</td><td class="r">${int(v.views)}</td></tr>`).join("")}</table>`;
+  }
+  if (k === "manager") {
+    const log = (d.manager || {}).log || [];
+    return close + `<h2>MANAGER</h2><div class="sub">STATUSBERICHTE DER LETZTEN STUNDEN</div>
+      <div class="list" id="list">${log.map((x, i) => `<div class="item${i === sel ? " sel" : ""}"><small>${new Date(x.time).toLocaleString("de-DE", {weekday: "short", hour: "2-digit", minute: "2-digit"}).toUpperCase()}</small><h3 style="font-weight:500;font-size:23px">${esc(x.text)}</h3></div>`).join("")}</div>
+      <div class="navhint">▲ ▼ BLÄTTERN</div>`;
+  }
+  if (k === "wetter") {
+    if (!WX) return close + "<h2>WETTER EMDEN</h2><p class='empty'>Wetter nicht erreichbar.</p>";
+    const now = Date.now(), H = WX.hourly, idx = H.time.findIndex(t => new Date(t).getTime() > now - 3600000);
+    const hours = [...Array(12)].map((_, j) => idx + j * 2).filter(i => i < H.time.length);
+    const D = WX.daily;
+    return close + `<h2>WETTER EMDEN</h2><div class="sub">SONNE ${D.sunrise[0].slice(11)} – ${D.sunset[0].slice(11)} · LUFTFEUCHTE ${WX.current.relative_humidity_2m} %</div>
+      <div class="hours">${hours.map(i => `<div><span>${H.time[i].slice(11, 16)}</span><svg viewBox="0 0 64 64">${wx(H.weather_code[i], !H.is_day[i])[1]}</svg><b>${Math.round(H.temperature_2m[i])}°</b><span>${H.precipitation_probability[i]} %</span></div>`).join("")}</div>
+      <table style="margin-top:30px"><tr><th>TAG</th><th>WETTER</th><th class="r">MIN</th><th class="r">MAX</th><th class="r">REGEN</th></tr>
+      ${D.time.map((t, i) => `<tr><td>${i ? new Date(t + "T12:00").toLocaleDateString("de-DE", {weekday: "long"}) : "Heute"}</td><td>${wx(D.weather_code[i])[0]}</td><td class="r">${Math.round(D.temperature_2m_min[i])}°</td><td class="r">${Math.round(D.temperature_2m_max[i])}°</td><td class="r">${D.precipitation_probability_max[i]} %</td></tr>`).join("")}</table>`;
+  }
+  return close;
+}
+function drawChart(){
+  const m = DATA && DATA.market, svg = $("chart"); if (!m || !svg) return;
+  const rows = m.year.slice(-RANGES[range][1]), vals = rows.map(r => r[1]);
+  const step = Math.max(1, Math.floor(rows.length / 6));
+  const labels = rows.map((r, i) => [i, new Date(r[0]).toLocaleDateString("de-DE", {day: "2-digit", month: "short"})]).filter((_, i) => i % step === 0);
+  line(svg, vals, 1380, 440, {axis: true, labels, sw: 3, dot: 7, pad: 8});
+}
+let current = null;
+function openDetail(k){
+  current = k; sel = 0;
+  $("win").innerHTML = detailHTML(k); $("detail").classList.add("open");
+  if (k === "markt") drawChart();
+}
+function closeDetail(){ current = null; $("detail").classList.remove("open"); const f = document.querySelector(".tile:focus") || lastTile; lastTile && lastTile.focus(); }
+function moveSel(dir){
+  const items = [...document.querySelectorAll("#list .item")]; if (!items.length) return;
+  items[sel] && items[sel].classList.remove("sel");
+  sel = Math.max(0, Math.min(items.length - 1, sel + dir));
+  items[sel].classList.add("sel"); items[sel].scrollIntoView({block: "nearest", behavior: "smooth"});
+}
+/* Zurueck-Taste der Fernbedienung: Browser-Verlauf nutzen */
+addEventListener("hashchange", () => { if (!location.hash && current) closeDetail(); });
+
+/* ---------- Bedienung mit der Fernbedienung ---------- */
+const tiles = () => [...document.querySelectorAll(".tile")];
+let lastTile = null;
+function go(dir){
+  const cur = document.activeElement.classList.contains("tile") ? document.activeElement : null;
+  if (!cur) { (lastTile || tiles()[0]).focus(); return; }
+  const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  let best = null, bs = Infinity;
+  for (const t of tiles()) {
+    if (t === cur) continue;
+    const b = t.getBoundingClientRect(), bx = b.left + b.width / 2, by = b.top + b.height / 2, dx = bx - ax, dy = by - ay;
+    const main = {left: -dx, right: dx, up: -dy, down: dy}[dir], side = dir === "left" || dir === "right" ? Math.abs(dy) : Math.abs(dx);
+    if (main <= 5) continue;
+    const s = main + side * 2; if (s < bs) { bs = s; best = t; }
+  }
+  if (best) best.focus();
+}
+document.addEventListener("focusin", e => { if (e.target.classList.contains("tile")) lastTile = e.target; });
+document.addEventListener("keydown", e => {
+  const k = e.key;
+  if (current) {
+    if (k === "Escape" || k === "Backspace" || k === "GoBack" || k === "BrowserBack") { e.preventDefault(); history.length > 1 && location.hash ? history.back() : (location.hash = "", closeDetail()); return; }
+    if (current === "markt" && (k === "ArrowLeft" || k === "ArrowRight")) {
+      e.preventDefault(); range = (range + (k === "ArrowRight" ? 1 : 2)) % 3;
+      document.querySelectorAll("#tabs button").forEach((b, i) => b.classList.toggle("on", i === range)); drawChart(); return;
+    }
+    if (k === "ArrowUp" || k === "ArrowDown") { e.preventDefault(); moveSel(k === "ArrowDown" ? 1 : -1); return; }
+    if (k === "Enter") { e.preventDefault(); history.back(); }
+    return;
+  }
+  const dirs = {ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down"};
+  if (dirs[k]) { e.preventDefault(); go(dirs[k]); }
+  if (k === "Enter" && document.activeElement.dataset.detail) { e.preventDefault(); location.hash = document.activeElement.dataset.detail; openDetail(document.activeElement.dataset.detail); }
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest(".tile");
+  if (current && (e.target.closest(".close") || e.target.id === "detail")) { history.back(); return; }
+  if (t && !current) { t.focus(); location.hash = t.dataset.detail; openDetail(t.dataset.detail); }
+});
+if (location.hash) history.replaceState(null, "", location.pathname);
+setTimeout(() => tiles()[0].focus({preventScroll: true}), 600);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+/* Drehendes Auto: laedt bmw.glb (3D-Modell). Fehlt es, bleibt die Hologramm-Plattform. */
+(function(){
+  const cv = document.getElementById("carCanvas");
+  if (!window.THREE || !THREE.GLTFLoader) return;
+  let r; try { r = new THREE.WebGLRenderer({canvas: cv, alpha: true, antialias: true}); } catch (e) { return; }
+  r.setPixelRatio(1); r.setSize(1640, 600, false);
+  const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1640 / 600, 0.1, 100);
+  cam.position.set(0, 1.25, 6.2); cam.lookAt(0, 0.35, 0);
+  scene.add(new THREE.HemisphereLight(0xc4b5fd, 0x1a1030, 1.1));
+  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(3, 4, 5); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x8b5cf6, 2.2); rim.position.set(-4, 2, -4); scene.add(rim);
+  const holder = new THREE.Group(); scene.add(holder);
+  new THREE.GLTFLoader().load("bmw.glb", g => {
+    const m = g.scene, box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    const s = 4.4 / Math.max(size.x, size.z); m.scale.setScalar(s); m.position.set(-c.x * s, -box.min.y * s, -c.z * s);
+    holder.add(m);
+    /* violette Leuchtkanten fuer den Hologramm-Look */
+    m.traverse(o => { if (o.isMesh) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 35), new THREE.LineBasicMaterial({color: 0xa78bfa, transparent: true, opacity: .35})); o.add(e); } });
+    document.getElementById("carph").remove();
+    let last = 0;
+    (function loop(t){ requestAnimationFrame(loop); if (t - last < 33) return; last = t; holder.rotation.y = t / 1000 * 0.35; r.render(scene, cam); })(0);
+  }, undefined, () => { document.getElementById("carph").textContent = "3D-MODELL FOLGT"; });
+})();
 </script>
 </body>
 </html>
