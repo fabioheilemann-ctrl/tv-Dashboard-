@@ -33,6 +33,7 @@ jobs:
         run: gradle -p android :app:assembleRelease --no-daemon
       - name: App auf der Website ablegen
         run: |
+          mkdir -p app
           cp android/app/build/outputs/apk/release/app-release.apk app/kommandozentrale.apk
           echo "{\"version\": ${{ github.run_number }}, \"built\": \"$(date -u +%FT%TZ)\"}" > app/version.json
           git config user.name "dashboard-bot"
