@@ -1,6 +1,10 @@
 {
  "manager": [
   {
+   "time": "2026-11-24T05:56:56.464443+01:00",
+   "text": "Guten Morgen, Sir. Dein Kanal steht bei 266 Aufrufen, heute kamen 0 dazu. Bis zum Stand von gestern fehlen noch 4. Heute sind 2 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Ray Traced Shadows: PS5 vs Xbox Explained“ mit 79 Aufrufen. Der MSCI World legt zu: +3,20 % auf 126,64 €."
+  },
+  {
    "time": "2026-11-23T21:29:58.406291+01:00",
    "text": "Guten Abend, Sir. Dein Kanal steht bei 266 Aufrufen, heute kamen 4 dazu. Das liegt schon über gestern. Heute sind 2 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Ray Traced Shadows: PS5 vs Xbox Explained“ mit 76 Aufrufen. Der MSCI World legt zu: +3,20 % auf 126,64 €."
   },
@@ -76,6 +80,10 @@
   },
   "2026-11-23": {
    "first": 262,
+   "last": 266
+  },
+  "2026-11-24": {
+   "first": 266,
    "last": 266
   }
  }
