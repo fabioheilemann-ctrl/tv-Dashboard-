@@ -1,6 +1,10 @@
 {
  "manager": [
   {
+   "time": "2026-11-26T03:25:41.817579+01:00",
+   "text": "Guten Morgen, Sir. Dein Kanal steht bei 294 Aufrufen, heute kamen 2 dazu. Bis zum Stand von gestern fehlen noch 7. Heute sind 3 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Alien Egg Cutscene Shock“ mit 8 Aufrufen. Der MSCI World gibt nach: -1,87 % auf 122,24 €."
+  },
+  {
    "time": "2026-11-25T20:12:21.584718+01:00",
    "text": "Guten Abend, Sir. Dein Kanal steht bei 292 Aufrufen, heute kamen 19 dazu. Das liegt schon über gestern. Heute sind 3 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Alien Egg Cutscene Shock“ mit 8 Aufrufen. Der MSCI World gibt nach: -1,87 % auf 122,24 €."
   },
@@ -105,6 +109,10 @@
   "2026-11-25": {
    "first": 283,
    "last": 292
+  },
+  "2026-11-26": {
+   "first": 294,
+   "last": 294
   }
  }
 }
