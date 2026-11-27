@@ -1,6 +1,10 @@
 {
  "manager": [
   {
+   "time": "2026-11-27T04:13:44.946402+01:00",
+   "text": "Guten Morgen, Sir. Dein Kanal steht bei 525 Aufrufen, heute kamen 149 dazu. Das liegt schon über gestern. Heute sind 2 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Car Keys: Randy's Mission Steps“ mit 208 Aufrufen. Der MSCI World legt zu: +2,94 % auf 125,83 €."
+  },
+  {
    "time": "2026-11-26T21:29:45.798012+01:00",
    "text": "Guten Abend, Sir. Dein Kanal steht bei 376 Aufrufen, heute kamen 84 dazu. Das liegt schon über gestern. Heute sind 3 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Car Keys: Randy's Mission Steps“ mit 161 Aufrufen. Der MSCI World legt zu: +2,94 % auf 125,83 €."
   },
@@ -121,6 +125,10 @@
   "2026-11-26": {
    "first": 294,
    "last": 376
+  },
+  "2026-11-27": {
+   "first": 525,
+   "last": 525
   }
  }
 }
