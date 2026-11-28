@@ -1,6 +1,10 @@
 {
  "manager": [
   {
+   "time": "2026-11-28T13:53:07.151605+01:00",
+   "text": "Guten Tag, Sir. Dein Kanal steht bei 825 Aufrufen, heute kamen 119 dazu. Bis zum Stand von gestern fehlen noch 62. Heute ist noch kein Short online gegangen. Stärkstes der letzten Videos: „GTA 6 Car Keys: Randy's Mission Steps“ mit 533 Aufrufen. Der MSCI World bewegt sich seitwärts: +0,00 % auf 127,20 €."
+  },
+  {
    "time": "2026-11-28T04:50:39.687534+01:00",
    "text": "Guten Morgen, Sir. Dein Kanal steht bei 706 Aufrufen, heute kamen 0 dazu. Bis zum Stand von gestern fehlen noch 181. Heute ist noch kein Short online gegangen. Stärkstes der letzten Videos: „GTA 6 Car Keys: Randy's Mission Steps“ mit 485 Aufrufen. Der MSCI World legt zu: +1,10 % auf 127,20 €."
   },
@@ -91,10 +95,6 @@
   {
    "time": "2026-11-20T22:32:24.500858+01:00",
    "text": "Guten Abend, Sir. Dein Kanal steht bei 255 Aufrufen. Die Tageszählung läuft ab jetzt mit. Heute sind 2 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Ray Traced Shadows: PS5 vs Xbox Explained“ mit 74 Aufrufen. Der MSCI World gibt nach: -3,21 % auf 122,72 €."
-  },
-  {
-   "time": "2026-11-20T21:57:38.778658+01:00",
-   "text": "Guten Abend, Sir. Dein Kanal steht bei 255 Aufrufen. Die Tageszählung läuft ab jetzt mit. Heute sind 2 Shorts online gegangen. Stärkstes der letzten Videos: „GTA 6 Ray Traced Shadows: PS5 vs Xbox Explained“ mit 74 Aufrufen. Der MSCI World gibt nach: -3,21 % auf 122,72 €."
   }
  ],
  "views": {
@@ -132,7 +132,7 @@
   },
   "2026-11-28": {
    "first": 706,
-   "last": 706
+   "last": 825
   }
  }
 }
